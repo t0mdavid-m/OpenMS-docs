@@ -48,8 +48,12 @@ In the following advanced parameters will be highlighted. These parameter can be
 
 The parameters change the behavior of `FeatureFinderMetabo` as follows:
 
-<!-- TODO -->
+- **noise_threshold_int**: Intensity threshold below which peaks are regarded as noise.
+- **chrom_peak_snr**: Minimum signal-to-noise a mass trace should have.
 - **chrom_fwhm**: The expected chromatographic peak width in seconds.
+- **mass_error_ppm**: Allowed mass deviation (in ppm)
+- **isotope_filtering_model**: Remove/score candidate assemblies based on isotope intensities. SVM isotope models for metabolites were trained with either 2% or 5% RMS error. For peptides, an averagine cosine scoring is used. Select the appropriate noise model according to the quality of measurement or MS device. (valid: 'metabolites (2% RMS)', 'metabolites (5% RMS)', 'peptides', 'none')
+- **remove_single_traces**: If set to true, unassembled traces are removed (single traces).
 - **report_convex_hulls**: If set to true, convex hulls including mass traces will be reported for all identified features. This increases the output size considerably.
 
 The output file .featureXML can be visualized with TOPPView on top of the used `.mzML` file - in a so called layer - to look at the identified features.
@@ -76,9 +80,18 @@ First start TOPPView and open the example `.mzML` file (see <a href="#figure-28"
 |:--:|
 |Figure 31: Zoom of the overlay of the .mzML with the .featureXML layer. Here the individual isotope traces (blue lines) are assembled into a feature here shown as convex hull (rectangular box).|
 
-<!-- TODO: Add Description of HighResPrecursorMassCorrector -->
+To correct precursor m/z values in centroided high-resolution data,, one can add a `HighResPrecursorMassCorrector`node (**Community Nodes**>**OpenMS**>**Mass Correction and Calibration**) before the `FeatureFinderMetabo` node. The following parameter will be used to refine precursor masses by selecting the most intense centroided MS1 peak within a m/z tolerance of 10ppm:
 
-The workflow can be extended for multi-file analysis, here an `Input Files` node is to be used instead of the `File Importer` node. In front of the `FeatureFinderMetabo`, a `ZipLoopStart` and behind `ZipLoopEnd` has to be used, since `FeatureFinderMetabo` will analysis on file to file bases.
+|**parameter**|	**value**|
+|:------------|:---------|
+|*highest_intensity_peak* → *mz_tolerance* → |100.0|
+|*highest_intensity_peak* → *mz_tolerance_unit* → |ppm|
+
+The parameters change the behavior of `HighResPrecursorMassCorrector` as follows:
+- **mz_tolerance**: The precursor mass tolerance to find the highest intensity MS1 peak.
+- **mz_tolerance_unit**: Unit of precursor mass tolerance.
+
+The workflow can be extended for multi-file analysis, here an `Input Files` node is to be used instead of the `File Importer` node. In front of the `HighResPrecursorMassCorrector`, a `ZipLoopStart` and behind `ZipLoopEnd` has to be used, since `HighResPrecursorMassCorrector` and `FeatureFinderMetabo` will analysis on file to file bases.
 
 To facilitate the collection of features corresponding to the same compound ion across different samples, an alignment of the samples’ feature maps along retention time is often helpful. In addition to local, small-scale elution differences, one can often see constant retention time shifts across large sections between samples. We can use linear transformations to correct for these large scale retention differences. This brings the majority of corresponding compound ions close to each other. Finding the correct corresponding ions is then faster and easier, as we don’t have to search as far around individual features.
 
@@ -89,25 +102,16 @@ To facilitate the collection of features corresponding to the same compound ion 
 
 - After the `ZipLoopEnd` node, add a `MapAlignerPoseClustering` node (**Community Nodes**>**OpenMS**>**Map Alignment**), set its Output Type to featureXML, and adjust the following settings:
 
-<!-- TODO: Update Parameters  -->
 |**parameter**|	**value**|
 |:------------|:---------|
-|*algorithm* → *max_num_peaks_considered*|	−1|
-|*algorithm* → *superimposer* → *mz_pair_max_distance*|	0.005|
-|*algorithm* → *superimposer* → *num_used_points*|	10000|
-|*algorithm* → *pairfinder* → *distance_RT* → *max_difference*|	20.0|
-|*algorithm* → *pairfinder* → *distance_MZ* → *max_difference*|	20.0|
-|*algorithm* → *pairfinder* → *distance_MZ* → *unit*|	ppm|
+|*algorithm* → *pairfinder* → *distance_MZ* → *max_difference*|10.0|
+|*algorithm* → *pairfinder* → *distance_MZ* → *unit*|ppm|
 
 `MapAlignerPoseClustering` provides an algorithm to align the retention time scales of multiple input files, correcting shifts and distortions between them. Retention time adjustment may be necessary to correct for chromatography differences e.g. before data from multiple LC-MS runs can be combined (feature linking). The alignment algorithm implemented here is the pose clustering algorithm.
 
 The parameters change the behavior of `MapAlignerPoseClustering` as follows:
-- **max_num_peaks_considered**: The maximal number of peaks/features to be considered per map. To use all, set this parameter to -1.
-- **mz_pair_max_distance**: Maximum of m/z deviation of corresponding elements in different maps. This condition applies to the pairs considered in hashing.
-- **num_used_points**: Maximum number of elements considered in each map (selected by intensity). Use a smaller number to reduce the running time and to disregard weak signals during alignment.
-- **distance_RT → max_difference**: Features that have a larger RT difference will never be paired.
-- **distance_MZ →max_difference**: Features that have a larger m/z difference will never be paired.
-- **distance_MZ →unit**: Unit used for the parameter distance_MZ max_difference, either Da or ppm.
+- **max_difference**: Features that have a larger m/z difference will never be paired.
+- **unit**: Unit used for the parameter distance_MZ max_difference, either Da or ppm.
 
 The next step after retention time correction is the grouping of corresponding features in multiple samples. In contrast to the previous alignment, we assume no linear relations of features across samples. The used method is tolerant against local swaps in elution order.
 
@@ -118,18 +122,17 @@ The next step after retention time correction is the grouping of corresponding f
 
 - After the `MapAlignerPoseClustering` node, add a `FeatureLinkerUnlabeledKD` node (**Community Nodes** > **OpenMS**>**Map Alignment**) and adjust the following settings:
 
-<!-- TODO: Update Parameters -->
   |**parameter**|**value**|
         |:------------|:--------|
-  |*algorithm* → *distance_RT* → *max_difference*|40|
-  |*algorithm* → *distance_MZ* → *max_difference*|20|
-  |*algorithm* → *distance_MZ* → *unit*|ppm|
+  |*algorithm* → *warp* → *enabled*|false|
+  |*algorithm* → *link* → *rt_tol*|30|
+  |*algorithm* → *link* → *mz_tol*|10|
 
   The parameters change the behavior of `FeatureLinkerUnlabeledKD` as follows (similar to the parameters we adjusted for `MapAlignerPoseClustering`):
 
-    - **distance_RT → max_difference**: Features that have a larger RT difference will never be paired.
-    - **distance_MZ → max_difference**: Features that have a larger m/z difference will never be paired.
-    - **distance_MZ → unit**: Unit used for the parameter distance_MZ max_difference, either Da or ppm.
+    - **warp → enabled**: If set to true, feature RTs are warped using LOWESS transformation before linking (reported RTs in results will always be the original RTs).
+    - **link → rt_tol**: Width of RT tolerance window (sec).
+    - **link → mz_tol**: M/z tolerance.
 
 - After the `FeatureLinkerUnlabeledKD` node, add a **TextExporter** node (**Community Nodes** > **OpenMS** > **File Handling**).
 - Add an `Output Folder` node and configure it with an output directory where you want to store the resulting files.
