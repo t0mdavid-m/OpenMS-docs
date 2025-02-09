@@ -239,24 +239,43 @@ Try to compute and visualize the m/z and retention time error of the different f
 
 <!-- Might Remove End -->
 
-### Spectral library search
-<!-- TODO: Fix for current dataset -->
+## Identifying Metabolites Using Spectral Libraries
 
-Identifying metabolites using only the accurate mass may lead to ambiguous results. In practice, additional information (e.g. the retention time) is used to further narrow down potential candidates. Apart from MS1-based features, tandem mass spectra (MS2) of metabolites provide additional information. In this part of the tutorial, we take a look on how metabolite spectra can be identified using a library of previously identified spectra.
+Relying solely on accurate mass for metabolite identification can yield ambiguous results. In practice, additional information—such as retention time—is used to refine candidate selection. Beyond MS1-based features, tandem mass spectra (MS2) provide crucial structural insights. In this section, we explore how metabolites can be identified using a library of previously characterized spectra.
 
-Because these libraries tend to be large we don’t distribute them with OpenMS.
+### Annotating MS1 Features with Fragment Spectra
 
-<div class="admonition task">
-<p class="admonition-title task-title">**Task**</p>
-Construct the workflow as shown in <a href="#figure-39">Fig. 39</a>. Use the file {path}`ExampleData,Metabolomics,datasets,MetaboliteIDSpectraDBpositive.mzML` as input for your workflow. You can use the spectral library from {path}`ExampleData,Metabolomics,databases,MetaboliteSpectralDB.mzML` as second input. The first input file contains tandem spectra that are identified by the **MetaboliteSpectralMatcher**. The resulting mzTab file is read back into a KNIME table The retention time values are exported as a list based on the current PSI-Standard. This has to be parsed using the **SplitCollectionColumn**, which outputs a ”Split Value 1” based on the first entry in the rention time list, which has to be renamed to retention time using the **ColumnRename** before it is stored in an Excel table. Make sure that you connect the **MzTabReader** port corresponding to the Small Molecule Section to the **Excel writer (XLS)**. Please select the ”add column headers” option in the **Excel writer (XLS)**).
-</div>
+Before performing a spectral library search, we must annotate MS1-based features with their corresponding fragment spectra. To achieve this, we introduce the **IDMapper** node between **MapAlignerPoseClusteringKD** and **FeatureLinkerUnlabeledKD**. Since **IDMapper** operates on a per-spectrum basis, we loop over the individual `featureXML` files using a **ZipLoop**. Additionally, as we aim to annotate MS spectra, we also connect the original mzML **FileImporter** node to the loop.
 
-(Figure_39)=
-|![Spectral library identification workflow](/_images/openms-user-tutorial/metabo/speclib.png)|
-|:--:|
-|Figure 39: Spectral library identification workflow.|
+Originally designed for proteomics, **IDMapper** expects protein identifications. To bypass this requirement, we connect an **empty ID file** via a **FileImporter** node.
 
-Run the workflow and inspect the output.
+### Filtering Unannotated MS1 Features
+
+After linking features, we remove MS1-based features that lack fragment spectrum annotations. This is done by connecting a **FileFilter** node to the output of **FeatureLinkerUnlabeledKD** and enabling:
+
+```plaintext
+id → remove_unannotated_features = true
+```
+
+### Generating Consensus Spectra
+
+Next, we consolidate individual MS2 spectra into **consensus spectra** using the **GNPSExport** node, which outputs an `mgf` file containing the consensus spectra. To configure this step:
+
+- Connect the **FileFilter** node output to **GNPSExport**.
+- Also, connect the **FileImporter** node containing the original spectra.
+
+### Performing Spectral Library Matching
+
+Now, we are ready to identify metabolites using the **MetaboliteSpectralMatcher** node:
+
+1. Add a **FileImporter** node to load the spectral database.
+2. Convert the `mgf` output of **GNPSExport** into `mzML` format using the **FileConverter** node, ensuring:
+   ```plaintext
+   algorithm → merge_spectra = false
+   ```
+3. Read the resulting `mzTab` file into a KNIME table using the **mzTabReader** node.
+
+This completes the workflow for spectral library-based metabolite identification.
 
 ## References
 
