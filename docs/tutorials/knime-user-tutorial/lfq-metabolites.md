@@ -253,7 +253,7 @@ Originally designed for proteomics, **IDMapper** expects protein identifications
 
 After linking features, we remove MS1-based features that lack fragment spectrum annotations. This is done by connecting a **FileFilter** node to the output of **FeatureLinkerUnlabeledKD** and enabling:
 
-```plaintext
+```
 id → remove_unannotated_features = true
 ```
 
@@ -270,7 +270,7 @@ Now, we are ready to identify metabolites using the **MetaboliteSpectralMatcher*
 
 1. Add a **FileImporter** node to load the spectral database.
 2. Convert the `mgf` output of **GNPSExport** into `mzML` format using the **FileConverter** node, ensuring:
-   ```plaintext
+   ```
    algorithm → merge_spectra = false
    ```
 3. Read the resulting `mzTab` file into a KNIME table using the **mzTabReader** node.
