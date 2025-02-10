@@ -29,7 +29,7 @@ different concentrations. [^1]
   started. In order to specify the database, [select](https://abibuilder.cs.uni-tuebingen.de/archive/openms/Tutorials/Example_Data/Labelfree/databases/s_pyo_sf370_potato_human_target_decoy_with_contaminants.fasta) {path}`Example_Data,Labelfree,databases,/break,s_pyo_sf370_potato_human_target_decoy_with_contaminants.fasta`
 - Connect the **out** port of the `CometAdapter` to `ZipLoopEnd` and we have a very basic peptide identification workflow.
 
- ## ```{note}
+ ```{note}
   You might also want to save your new identification workflow under a different name. Have a look at <a href="#duplicating-workflows">duplicating workflows</a>
   for information on how to create copies of workflows.
   ```
