@@ -92,7 +92,7 @@ FDR of < 1 %.
   **Community Nodes** > **OpenMS** > **Identification Processing**). `FalseDiscoveryRate` is meant to be run on data with protein inferencences
   (more on that later), in order to just use it for peptides, open the configure window, select "show advanced parameter" and toggle "force" to true.
 - In order to set the FDR level to 1%, we need an `IDFilter` node from **Community Nodes** > **OpenMS** > **Identification Processing**.
-  Configuring its parameter `FDR→PSM` to 0.01 will do the trick. The FDR calculations (embedded in the idXML) from
+  Configuring the parameter `FDR→PSM` of the `FalseDiscoveryRate` node to 0.01 will do the trick. The FDR calculations (embedded in the idXML) from
   the `FalseDiscoveryRate` node will go into the *in* port of the `IDFilter` node.
 - Execute your workflow and inspect the results using `IDTextReader` like you did before. How many peptides did you
   identify at this FDR threshold?
